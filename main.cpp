@@ -1,10 +1,4 @@
 
-/*
-
-    right now pare ca merge if-ul
-
-*/
-
 #include<iostream>
 #include<fstream>
 #include<map>
@@ -132,12 +126,7 @@ int solve_expresie_aritmetica(vector<string> v){
 
                 //cout << "x : " << x << endl;
 
-                xaux.clear();
-                /// transforma pe x in string 
-                while(x){
-                    xaux.insert(xaux.begin(), char('0'+x%10));
-                    x /= 10;
-                }
+                xaux = to_string(x);
 
                 //cout << "xaux : " << xaux << endl;
 
@@ -599,9 +588,19 @@ void solve_bucata_cod(string oprire){
             else{
 
                 // sarim peste continutul if-ului
+                int nrd = 1;
+                int nri = 0;
                 while(citeste_linie(linie)){
                     if(linie == "sfarsit daca")
-                    break;
+                        nri++;//break;
+                    if(linie.substr(0, 4) == "daca")
+                        nrd++;
+                    if(nrd - nri == 0)
+                        break;
+                }
+
+                if(nrd - nri != 0){
+                    cout << "EROARE : daca neinchis (probabil)";
                 }
 
                 string nl = next_line();
@@ -670,6 +669,24 @@ void solve_bucata_cod(string oprire){
 
             streampos start = fin.tellg(); // tine minte unde incepe linia
 
+            if(istart > ifinal){
+                // da skip la for
+                int nrd = 1;
+                int nri = 0;
+                while(citeste_linie(linie)){
+                    if(linie.substr(0, 14) == "sfarsit pentru"){
+                        nri++;
+                    }
+                    if(linie.substr(0, 6) == "pentru"){
+                        nrd++;
+                    }
+
+                    if(nrd - nri == 0)
+                        break;
+                }
+
+            }
+
             for(i = istart; i<=ifinal; i++){
 
                 //cout << "ajunge aici?\n";
@@ -703,10 +720,29 @@ void solve_bucata_cod(string oprire){
 
             streampos start = fin.tellg(), end_pos = start; // tine minte unde incepe
 
+            if(!solve_expresie_logica(expr)){
+
+                int nrd = 1;
+                int nri = 0;
+                while(citeste_linie(linie)){
+                    if(linie.substr(0, 16) == "sfarsit cat timp"){
+                        nri++;
+                    }
+                    if(linie.substr(0, 3) == "cat"){
+                        nrd++;
+                    }
+
+                    end_pos = fin.tellg();
+
+                    if(nrd - nri == 0)
+                        break;
+                }
+
+            }
+
             while(solve_expresie_logica(expr)){
                 solve_bucata_cod("sfarsit cat timp");
                 end_pos = fin.tellg();
-
                 fin.seekg(start); // merge inapoi la pos
 
             }
@@ -714,6 +750,10 @@ void solve_bucata_cod(string oprire){
             fin.seekg(end_pos);
 
             continue;
+        }
+
+        if(cuvinte[0] == "repeta"){ // do while
+
         }
         
     }
