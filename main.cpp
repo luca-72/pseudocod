@@ -20,20 +20,18 @@ map<string, char> chars;
 
 map<string, bool> seen_ints; // daca exista un int cu numele
 
-std::streampos pos; // tine minte unde incepe linia
+std::streampos pos, pos2; // tine minte unde incepe linia
 
 int solve_expresie_aritmetica(vector<string> v){
 
-    cout << "se rezolva ecuatia aritmetica : ";
+    /*cout << "se rezolva ecuatia aritmetica : ";
     for(auto e : v)
         cout << e << " ";
-    cout << endl;
+    cout << endl;*/
 
     // (x+2) % 3 - 4
 
     // rezolvam prima data parantezele
-
-    // BIG TO DO : codul de acum presupune ca in v sunt numai numere si operatori, dar pot si si variabile
 
     bool stop = 0;
     int i, j, x;
@@ -173,10 +171,22 @@ int solve_expresie_aritmetica(vector<string> v){
     for(string e : v){
 
         if(isdigit(e[0])){
+            // numar
             vint.push_back(stoi(e));
         }
         else{
-            vint.push_back(-1); // operator, nu ar trebuie sa afecteze operatiile. e pus doar ca sa fie de aceiasi lungime cu v[]
+            if(isalpha(e[0])){
+                //  variabila
+
+                if(!seen_ints[e]){
+                    cout << "EROARE : " << e << " este nedefinit\n";
+                    exit(0);
+                }
+
+                vint.push_back(ints[e]);
+            }
+            else
+              vint.push_back(-1); // operator, nu ar trebuie sa afecteze operatiile. e pus doar ca sa fie de aceiasi lungime cu v[]
         }
 
     }
@@ -195,14 +205,16 @@ int solve_expresie_aritmetica(vector<string> v){
 
         for(i=0;i+2<v.size();i++){
 
-            if(v[i+1] == "*" || v[i+1] == "/"){
+            if(v[i+1] == "*" || v[i+1] == "/" || v[i+1] == "%"){
 
                 // operatie de gradul 2
 
                 if(v[i+1] == "*")
                     vint[i] *= vint[i+2];
-                else
+                if(v[i+1] == "/")
                     vint[i] /= vint[i+2];
+                if(v[i+1] == "%")
+                    vint[i] %= vint[i+2];
 
                 v.erase(v.begin()+i+1, v.begin()+i+3);
                 vint.erase(vint.begin()+i+1, vint.begin()+i+3);
@@ -274,7 +286,7 @@ int solve_expresie_aritmetica(vector<string> v){
         exit(0);
     }
 
-    cout << "un rezultat : " << vint[0] << endl;
+    //cout << "un rezultat : " << vint[0] << endl;
     return vint[0];
 
     cout << "EROARE 0129";
@@ -295,7 +307,7 @@ bool solve_expresie_comparatie(vector<string> v){
 
     for(string e : v){
 
-        if(e == "=" || e == "<" ||e == ">" ||e == "<=" ||e == ">="){
+        if(e == "=" || e == "<" ||e == ">" ||e == "<=" ||e == ">=" || e == "!="){
             h = 1;
             op = e;
             continue;
@@ -327,6 +339,9 @@ bool solve_expresie_comparatie(vector<string> v){
     
     if(op == ">=")
         return x1 >= x2;
+
+    if(op == "!=")
+        return x1 != x2;
     
 
     cout << "EROARE : nu stiu exact ce";
@@ -345,7 +360,7 @@ bool solve_expresie_logica(vector<string> cuvinte){
     // gata probabil
 
 
-    // to do : nu merg paranteze pe asta. trebuie facut ceva asemanator cu solve_expresie_aritmatica, in care rezolv recursiv niste paranteze
+    // to do : nu merg paranteze pe asta. trebuie facut ceva asemanator cu aritmetica, in care rezolv recursiv niste paranteze
 
     vector<string> aux;
     bool h, frst=1;
@@ -357,7 +372,7 @@ bool solve_expresie_logica(vector<string> cuvinte){
         if(e == "&" || e == "|"){
             x = solve_expresie_comparatie(aux);
 
-            cout << "rezultat prima conditie : " << x << endl;
+           // cout << "rezultat prima conditie : " << x << endl;
 
             aux.clear();
             auxop = e;
@@ -405,23 +420,36 @@ bool solve_expresie_logica(vector<string> cuvinte){
             }
     }
 
+    //cout << "rezultat if : " << h << endl;
+
     return h;
 
 }
 
+bool citeste_linie(string &linie){
+    if(!getline(fin, linie))
+        return false; // ne asiguram ca nu e ultima
+
+    while(!linie.empty() && linie[0] == ' ')
+        linie.erase(linie.begin()); 
+
+    return true;
+
+}
+
 string next_line(){
-
     string linie;
-    pos = fin.tellg(); // tine minte unde incepe linia
-    getline(fin, linie);
-
-    if(linie == "")
-        return next_line();
-    else
-       fin.seekg(pos); // merge inapoi la pos
-
-    return linie;
-
+    while(true){
+        streampos p = fin.tellg();
+        if(!citeste_linie(linie)){
+            fin.clear();
+            return "";
+        }
+        if(!linie.empty()){
+            fin.seekg(p);
+            return linie;
+        }
+    }
 }
 
 void solve_bucata_cod(string oprire){
@@ -432,9 +460,9 @@ void solve_bucata_cod(string oprire){
     bool h;
 
 
-    while(getline(fin, linie)){
+    while(citeste_linie(linie)){
 
-        cout << "linie : " << linie << endl;
+        //cout << "linie : " << linie << endl;
 
         if(linie == oprire) // || linie[0] == "altfel" || linie[0] == "sfarsit"
             return;
@@ -498,17 +526,29 @@ void solve_bucata_cod(string oprire){
 
         if(cuvinte.size() > 1 && (cuvinte[1] == "<-" || cuvinte[1] == "←")){
 
+            // BIG TO DO, y poate fi expresie
+
             // atribuire : 
             x = cuvinte[0];
             // cuvinte[1] = "<-"
-            y = cuvinte[2];
+
+            vector<string> expr;
+            int rez;
+            for(int i=2;i<cuvinte.size();i++)
+                expr.push_back(cuvinte[i]);
+
+            rez = solve_expresie_aritmetica(expr);
+            ints[x] = rez;
+            seen_ints[x] = 1;
+
+            //y = cuvinte[2];
 
             if(!seen_ints[x]){
                 //cout << "EROARE : nu exista nicio variabila cu numele " << x << "\n";
                 //continue;
         
             }
-            if(isalpha(y[0]) && !seen_ints[y]){
+            /*if(isalpha(y[0]) && !seen_ints[y]){
                 cout << "EROARE : nu exista nicio variabila cu numele (nedefinit) " << y << "\n";
                 continue;
             }
@@ -517,7 +557,8 @@ void solve_bucata_cod(string oprire){
             if(isdigit(y[0]))
                 ints[x] = stoi(y);
             else
-                ints[x] = ints[y];
+                ints[x] = ints[y];*/
+
         }
 
         if(cuvinte[0] == "daca"){ //if
@@ -526,6 +567,8 @@ void solve_bucata_cod(string oprire){
 
             vector<string> expr;
             bool hh;
+
+            expr.clear();
 
             for(int ii = 1; ii < cuvinte.size() && cuvinte[ii] != "atunci";ii++){
 
@@ -537,17 +580,17 @@ void solve_bucata_cod(string oprire){
 
             hh = solve_expresie_logica(expr);
 
-            cout << "rezultat if " << hh << endl;
+            //cout << "rezultat if " << hh << endl;
 
             if(hh){
                 solve_bucata_cod("sfarsit daca");
                 string nl = next_line(); // to do, functie care citeste urmatoare linie *si da citirea inapoi*
 
-                cout << "\n next line " << nl << "\n";
+                //cout << "\n next line " << nl << "\n";
 
                 if(nl == "altfel"){
                     // citeste pana la sfarsit altfel
-                    while(getline(fin, linie)){
+                    while(citeste_linie(linie)){
                         if(linie == "sfarsit altfel")
                             break;
                     }
@@ -556,7 +599,7 @@ void solve_bucata_cod(string oprire){
             else{
 
                 // sarim peste continutul if-ului
-                while(getline(fin, linie)){
+                while(citeste_linie(linie)){
                     if(linie == "sfarsit daca")
                     break;
                 }
@@ -572,14 +615,103 @@ void solve_bucata_cod(string oprire){
 
         if(cuvinte[0] == "pentru"){ //for
 
+            // pentru i <- m ,n executa
+
+            // sfarsit pentru
+
+            // urmatoarele 3 if-uri ar trebui sa stearga virgula
+            bool hvirgula = 1; // daca virgula e cuvant separat
+            if(cuvinte[3][cuvinte[3].size()-1] == ','){
+                cuvinte[3].pop_back();
+                hvirgula = 0;
+            }
+            if(cuvinte[4][0] == ',' && cuvinte[4].size() > 1){
+                cuvinte[4].erase(cuvinte[4].begin());
+                hvirgula = 0;
+            }
+            if(cuvinte[4] == ","){
+                hvirgula = 1;
+                cuvinte.erase(cuvinte.begin()+4); 
+            }
+
+            int i, istart, ifinal;
+            string istring;
+
+            istring = cuvinte[1];
+
+            if(isdigit(cuvinte[3][0])) // numar
+                istart = stoi(cuvinte[3]);
+            else{
+                // variabila
+                if(!seen_ints[cuvinte[3]]){
+                    cout << "EROARE : nu exista " << cuvinte[3];
+                    exit(0);
+                }
+                istart = ints[cuvinte[3]];
+            }
+
+            if(isdigit(cuvinte[4][0])) // numar
+                ifinal = stoi(cuvinte[4]);
+            else{
+                // variabila
+                if(!seen_ints[cuvinte[4]]){
+                    cout << "EROARE : nu exista " << cuvinte[4];
+                    exit(0);
+                }
+                ifinal = ints[cuvinte[4]];
+            }
+
+            //cout << "istart : " << istart << endl;
+            //cout << "ifinal : " << ifinal << endl;
+
+            seen_ints[istring] = 1;
+
+            //cout << "istring : " << istring << endl;
+
+            streampos start = fin.tellg(); // tine minte unde incepe linia
+
+            for(i = istart; i<=ifinal; i++){
+
+                //cout << "ajunge aici?\n";
+
+                ints[istring] = i;
+                //string aux100 = next_line();
+                //cout << "nl : " << aux100 << endl;
+
+                solve_bucata_cod("sfarsit pentru");
+                if(i < ifinal)
+                    fin.seekg(start); // merge inapoi la pos
+
+                //cout << "dar aici?\n";
+            }
+
+            seen_ints[istring] = 0;
+            ints[istring] = 0;
+
+
             continue;
         }
         
         if(cuvinte[0] == "cat"){ //while
 
-            continue;
-        }
-        if(cuvinte[0] == "sfarsit"){ //paranteza inchisa
+            // cat timp *expresie logica*  executa
+            vector<string> expr;
+            bool hh;
+            for(i = 2;i < cuvinte.size()-1;i++){
+                expr.push_back(cuvinte[i]);
+            }
+
+            streampos start = fin.tellg(), end_pos = start; // tine minte unde incepe
+
+            while(solve_expresie_logica(expr)){
+                solve_bucata_cod("sfarsit cat timp");
+                end_pos = fin.tellg();
+
+                fin.seekg(start); // merge inapoi la pos
+
+            }
+
+            fin.seekg(end_pos);
 
             continue;
         }
